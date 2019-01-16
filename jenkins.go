@@ -251,6 +251,13 @@ func (j *Jenkins) DeleteJob(name string) (bool, error) {
 	return job.Delete()
 }
 
+// 重写参数组装，解决server error问题
+func (j *Jenkins) Build(name string, params string) (int64, error) {
+	job := Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + name}
+
+	return job.BuilWithParams(params)
+}
+
 // Invoke a job.
 // First parameter job name, second parameter is optional Build parameters.
 func (j *Jenkins) BuildJob(name string, options ...interface{}) (int64, error) {
