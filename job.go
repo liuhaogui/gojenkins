@@ -23,6 +23,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"regexp"
 )
 
 type Job struct {
@@ -123,6 +124,23 @@ func (j *Job) GetBuild(id int64) (*Build, error) {
 	// use job embedded URL to properly handle jobs in folders
 	jobURL := strings.Replace(j.Raw.URL, j.Jenkins.Server, "", -1)
 	build := Build{Jenkins: j.Jenkins, Job: j, Raw: new(BuildResponse), Depth: 1, Base: jobURL + "/" + strconv.FormatInt(id, 10)}
+	status, err := build.Poll()
+	if err != nil {
+		return nil, err
+	}
+	if status == 200 {
+		return &build, nil
+	}
+	return nil, errors.New(strconv.Itoa(status))
+}
+// 处理url和返回url不一致问题
+func (j *Job) GetBuildJobByNum(id int64) (*Build, error) {
+	reg, _ := regexp.Compile("(.*?)/job")
+	jobURL := reg.ReplaceAllStringFunc(j.Raw.URL, func(s string) string {
+		return "/job"
+	})
+
+	build := Build{Jenkins: j.Jenkins, Job: j, Raw: new(BuildResponse), Depth: 1, Base: jobURL + strconv.FormatInt(id, 10)}
 	status, err := build.Poll()
 	if err != nil {
 		return nil, err
@@ -548,7 +566,8 @@ func (j *Job) Poll() (int, error) {
 
 func (j *Job) History() ([]*History, error) {
 	var s string
-	_, err := j.Jenkins.Requester.Get(j.Base+"/buildHistory/ajax", &s, nil)
+	res, err := j.Jenkins.Requester.Get(j.Base+"/buildHistory/ajax", &s, nil)
+	fmt.Println(res.Body)
 	if err != nil {
 		return nil, err
 	}

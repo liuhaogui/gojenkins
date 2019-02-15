@@ -306,6 +306,20 @@ func (j *Jenkins) GetBuild(jobName string, number int64) (*Build, error) {
 	return build, nil
 }
 
+// 自己改造方法 处理url和jenkins 服务url不一致问题
+func (j *Jenkins) GetBuildJob(jobName string, number int64) (*Build, error) {
+	job, err := j.GetJob(jobName)
+	if err != nil {
+		return nil, err
+	}
+	build, err := job.GetBuildJobByNum(number)
+
+	if err != nil {
+		return nil, err
+	}
+	return build, nil
+}
+
 func (j *Jenkins) GetJob(id string, parentIDs ...string) (*Job, error) {
 	job := Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + strings.Join(append(parentIDs, id), "/job/")}
 	status, err := job.Poll()
